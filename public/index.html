@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Yapay Zekâyla Daha İyi Çalışmak</title>
+<style>
+  :root{
+    --dark:#21295C; --primary:#065A82; --teal:#1C7293; --mint:#02C39A;
+    --ink:#1B2430; --muted:#5B6B7A; --tint:#EEF5F8; --tintMint:#E6F7F2;
+    --lightBlue:#B9C6DE;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#0f1430;overflow:hidden;color:var(--ink)}
+  .stage{position:relative;width:100vw;height:100vh}
+  .slide{position:absolute;inset:0;padding:4.5vh 6vw;display:flex;flex-direction:column;justify-content:flex-start;
+    opacity:0;transform:translateX(40px);pointer-events:none;transition:opacity .45s ease,transform .45s ease;background:#fff;overflow:auto}
+  .slide.active{opacity:1;transform:translateX(0);pointer-events:auto}
+  .slide.dark{background:var(--dark);color:#fff}
+  .kicker{font-size:.75rem;font-weight:700;letter-spacing:.25em;color:var(--teal);text-transform:uppercase;margin-bottom:.4rem}
+  h1{font-family:Cambria,Georgia,serif;font-size:clamp(1.6rem,3.4vw,2.6rem);color:var(--dark);margin-bottom:1.2rem;line-height:1.15}
+  .dark h1{color:#fff}
+  .lead{font-size:clamp(.95rem,1.5vw,1.15rem);color:var(--ink);margin-bottom:1.4rem;max-width:60ch}
+  .dark .lead{color:var(--lightBlue)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:1rem 2.5rem}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:1.2rem}
+  .row{display:flex;gap:.85rem;align-items:flex-start;padding:.55rem;border-radius:12px;transition:background .2s}
+  .row:hover{background:var(--tint)}
+  .row .dot{flex:0 0 2.5rem;height:2.5rem;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;font-size:1.1rem;color:#fff}
+  .row.tealdot .dot{background:var(--teal)}
+  .row h3{font-size:1rem;color:var(--dark);margin-bottom:.2rem}
+  .row p{font-size:.88rem;color:var(--muted);line-height:1.45}
+  .card{background:var(--tint);border-radius:14px;padding:1.3rem;box-shadow:0 4px 14px rgba(0,0,0,.08);transition:transform .2s}
+  .card:hover{transform:translateY(-4px)}
+  .card .dot{width:2.6rem;height:2.6rem;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.15rem;color:#fff;margin-bottom:.8rem}
+  .card h3{font-size:1.05rem;color:var(--dark);margin-bottom:.5rem}
+  .card p{font-size:.86rem;color:var(--muted);line-height:1.5}
+  .banner{margin-top:auto;background:var(--tintMint);border-radius:12px;padding:.9rem 1.4rem;font-size:.95rem;color:var(--ink)}
+  .banner b{color:var(--dark)}
+  .foot{font-size:.85rem;font-style:italic;color:var(--muted);margin-top:1rem}
+  /* nav */
+  .nav{position:fixed;bottom:18px;right:22px;display:flex;gap:.5rem;z-index:50}
+  .nav button{width:42px;height:42px;border-radius:50%;border:none;background:var(--dark);color:#fff;font-size:1.1rem;cursor:pointer;opacity:.85}
+  .nav button:hover{opacity:1;background:var(--teal)}
+  .counter{position:fixed;bottom:28px;left:26px;font-size:.8rem;color:#888;z-index:50;background:rgba(255,255,255,.75);padding:.2rem .6rem;border-radius:99px}
+  .progress{position:fixed;top:0;left:0;height:4px;background:var(--mint);z-index:60;transition:width .4s}
+  /* interactive bits */
+  .demo-box{background:var(--tint);border-radius:14px;padding:1.4rem;margin-bottom:1.2rem}
+  .btn{background:var(--mint);color:#06342b;border:none;border-radius:99px;padding:.55rem 1.3rem;font-size:.92rem;font-weight:700;cursor:pointer}
+  .btn:hover{filter:brightness(1.07)}
+  .prob{display:flex;align-items:center;gap:.7rem;margin-top:.55rem}
+  .prob span.w{flex:0 0 5.5rem;font-weight:700;color:var(--dark);font-size:.95rem}
+  .prob .bar{height:1.15rem;border-radius:99px;background:var(--teal);width:0;transition:width 1s ease}
+  .prob span.pct{font-size:.85rem;color:var(--muted)}
+  .tok{display:inline-block;padding:.45rem .8rem;border-radius:10px;color:#fff;font-family:ui-monospace,Menlo,monospace;font-weight:700;margin:.2rem .15rem;opacity:0;transform:scale(.7);transition:all .3s}
+  .tok.show{opacity:1;transform:scale(1)}
+  .attn{font-size:1.25rem;line-height:2.2;color:var(--ink)}
+  .attn span{padding:.15rem .3rem;border-radius:8px;cursor:pointer;transition:background .25s}
+  .attn span.hot{background:var(--mint);color:#06342b;font-weight:700}
+  .attn span.src{background:var(--dark);color:#fff;font-weight:700}
+  .toggler{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1rem}
+  .toggler button{border:2px solid var(--teal);background:#fff;color:var(--teal);border-radius:99px;padding:.45rem 1rem;font-size:.88rem;font-weight:700;cursor:pointer;transition:all .2s}
+  .toggler button.on{background:var(--teal);color:#fff}
+  .preview{background:var(--dark);color:#dfe8f5;border-radius:12px;padding:1.1rem 1.3rem;font-family:ui-monospace,Menlo,monospace;font-size:.85rem;line-height:1.7;min-height:8.5rem}
+  .preview .ph{color:#7f90b8;font-style:italic}
+  .meter{height:.7rem;border-radius:99px;background:#e2e8f0;overflow:hidden;margin-top:.8rem}
+  .meter div{height:100%;background:var(--mint);width:8%;transition:width .4s}
+  .win{border:3px solid var(--teal);border-radius:14px;padding:.8rem;max-width:24rem}
+  .win .layer{border-radius:8px;color:#fff;font-weight:700;font-size:.85rem;text-align:center;padding:.5rem;margin-bottom:.5rem;transition:opacity .3s}
+  .loop{display:flex;align-items:center;gap:.8rem;margin:1.2rem 0;flex-wrap:wrap}
+  .loop .node{border-radius:14px;padding:1rem 1.3rem;min-width:11rem;text-align:center;transition:box-shadow .3s,transform .3s}
+  .loop .node b{display:block;font-size:1rem;margin-bottom:.25rem}
+  .loop .node small{font-size:.8rem;opacity:.85}
+  .loop .node.lit{box-shadow:0 0 0 4px var(--mint);transform:scale(1.04)}
+  .loop .arr{font-size:1.6rem;color:var(--teal);font-weight:700}
+  .takeaway{display:flex;gap:1.1rem;align-items:flex-start;margin-bottom:1.3rem}
+  .takeaway .num{flex:0 0 2.7rem;height:2.7rem;border-radius:50%;background:var(--mint);color:var(--dark);font-weight:800;font-size:1.25rem;display:flex;align-items:center;justify-content:center}
+  .takeaway h3{color:#fff;font-size:1.15rem;margin-bottom:.25rem}
+  .takeaway p{color:var(--lightBlue);font-size:.92rem}
+  .hint{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);font-size:.78rem;color:#999;z-index:50}
+  table.anat{border-collapse:collapse;font-size:.88rem;margin-top:.5rem}
+  table.anat td{padding:.45rem .8rem;border-bottom:1px solid #dde6ec}
+  table.anat td:first-child{font-weight:700;color:var(--primary);white-space:nowrap}
+  table.anat td:last-child{color:var(--muted);font-style:italic}
+  .nn-line{stroke:#C9D8E2;stroke-width:1.1;transition:stroke .3s,stroke-width .3s}
+  .nn-line.live{stroke:var(--mint);stroke-width:2.2}
+  .nn-line.back{stroke:#F59E0B;stroke-width:2.2}
+  .nn-node{fill:var(--teal);transition:fill .3s}
+  .nn-node.fire{fill:var(--mint)}
+  .nn-node.back{fill:#F59E0B}
+  .att-word{padding:.3rem .55rem;border-radius:10px;background:var(--tint);cursor:pointer;transition:all .2s;user-select:none}
+  .att-word:hover{background:var(--teal);color:#fff}
+  .att-word.src{background:var(--dark);color:#fff;font-weight:700}
+  .att-word.tgt{background:var(--mint);color:#06342b;font-weight:700}
+  .att-arc{fill:none;stroke:var(--mint);opacity:0;transition:opacity .5s}
+  .att-arc.on{opacity:.85}
+  .row:has(.why){cursor:pointer}
+  .why{display:none;margin-top:.4rem;font-size:.8rem;color:#0c6b59;background:var(--tintMint);border-radius:8px;padding:.5rem .65rem;line-height:1.5}
+  .row.open .why{display:block}
+  .whyhint{display:inline-block;font-size:.7rem;font-weight:700;color:var(--mint);background:var(--tintMint);border-radius:99px;padding:.05rem .5rem;margin-left:.4rem;vertical-align:middle}
+  .row.open .whyhint{opacity:.4}
+  @media (max-width:820px){.grid2,.grid3{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+<div class="stage" id="stage">
+
+<!-- 1 · KAPAK -->
+<section class="slide dark">
+  <div style="margin:auto 0">
+    <h1 style="font-size:clamp(2.2rem,5vw,3.6rem)">Yapay Zekâyla<br>Daha İyi Çalışmak</h1>
+    <p style="font-size:1.4rem;margin:.8rem 0"><b style="color:var(--mint)">Prompt</b> <span style="color:#8FA3C8">·</span> <b style="color:var(--mint)">Context</b> <span style="color:#8FA3C8">·</span> <b style="color:var(--mint)">Harness</b></p>
+    <p style="color:var(--lightBlue);font-style:italic">Model nasıl düşünüyor bilirsen, ne isteyeceğini de bilirsin.</p>
+    <p style="color:#8FA3C8;font-size:.85rem;margin-top:2.5rem">Tayfun · Temmuz 2026</p>
+  </div>
+</section>
+
+<!-- 2 · YZ NASIL ÇALIŞIR -->
+<section class="slide">
+  <div class="kicker">Temel</div>
+  <h1>Yapay zekâ aslında ne yapıyor?</h1>
+  <p class="lead">Özünde kocaman bir <b>“sıradaki kelimeyi tahmin et”</b> makinesi. Deneyin:</p>
+  <div class="demo-box">
+    <p style="font-size:1.3rem;margin-bottom:.9rem">“Bugün hava çok <span id="blank" style="border-bottom:3px dashed var(--teal);padding:0 1.5rem">&nbsp;</span>”</p>
+    <button class="btn" onclick="predict()">Modelin tahminini gör</button>
+    <div id="probs" style="margin-top:.6rem">
+      <div class="prob"><span class="w">güzel</span><div class="bar" data-w="62"></div><span class="pct">%62</span></div>
+      <div class="prob"><span class="w">sıcak</span><div class="bar" data-w="21"></div><span class="pct">%21</span></div>
+      <div class="prob"><span class="w">soğuk</span><div class="bar" data-w="9"></div><span class="pct">%9</span></div>
+      <div class="prob"><span class="w">yağışlı</span><div class="bar" data-w="5"></div><span class="pct">%5</span></div>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="row"><div class="dot">📖</div><div><h3>Ezberlemiyor, örüntü tamamlıyor</h3><p>İnternet ölçeğinde metinden dilin ve dünyanın örüntülerini öğrenmiş durumda. İçinde bir veritabanı yok — o yüzden bazen çok isabetli, bazen de gayet emin bir tonda yanlış.</p></div></div>
+    <div class="row"><div class="dot">🔁</div><div><h3>Her kelime, öncekilere bakıyor</h3><p>Cevap kelime kelime üretilir; her yeni kelime, o ana kadar yazılan her şeye bakılarak seçilir. Bu detayı aklınızda tutun — birazdan “context” derken buna döneceğiz.</p></div></div>
+  </div>
+</section>
+
+<!-- 3 · TOKEN -->
+<section class="slide">
+  <div class="kicker">Temel</div>
+  <h1>Token: Modelin alfabesi</h1>
+  <p class="lead">Model metni bizim gibi harf harf okumaz; <b>token</b> denen parçalara bölerek görür.</p>
+  <div class="demo-box">
+    <p id="tok-sent" style="font-style:italic;color:var(--muted);margin-bottom:.8rem">“Yarınki sunumum heyecanlı geçecek.”</p>
+    <div id="tok-area" style="min-height:3.2rem"></div>
+    <div style="margin-top:.8rem;display:flex;gap:.6rem;align-items:center">
+      <button class="btn" onclick="tokenize()">Token'lara böl</button>
+      <button class="btn" style="background:var(--teal);color:#fff" onclick="nextSentence()">Başka cümle dene</button>
+      <span id="tok-count" style="font-size:.9rem;color:var(--muted)"></span>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="row"><div class="dot">🧩</div><div><h3>Sık kullanılan kelime tek parça kalır</h3><p>Nadir kelimeler ve Türkçe'nin ekleri parçalanır. Model, bu parçaların hangi sırayla geldiğini öğrenir.</p></div></div>
+    <div class="row"><div class="dot">⚖️</div><div><h3>Her şeyin ölçüsü token</h3><p>Hafıza (context window), hız ve maliyet hep token'la ölçülür. Aynı şeyi daha az token'la anlatmak = daha verimli çalışmak.</p></div></div>
+  </div>
+</section>
+
+<!-- 4a · DERİN SİNİR AĞLARI -->
+<section class="slide">
+  <div class="kicker">Temel · Motorun içi 1/4</div>
+  <h1>Derin sinir ağları</h1>
+  <div class="grid2" style="align-items:start;gap:1rem 2rem">
+    <div>
+      <p class="lead" style="margin-bottom:.9rem">Katman katman dizilmiş yapay <b>“nöron”lar</b>. Her nöron ufak bir hesap yapar, sonucu bir sonraki katmana iletir.</p>
+      <div class="row"><div class="dot">🔗</div><div><h3>Öğrenilen şey: ağırlıklar</h3><p>Ağırlık nöronun değil, <b>bağlantının</b> (çizginin) üzerindedir: iki nöron arasındaki hattın gücü. Nöron sadece gelenleri toplar. Modelin “bilgisi” = bu sayıların tamamı. Sağda “Ağırlıkları göster”e basın.</p></div></div>
+      <div class="row"><div class="dot">⚡</div><div><h3>Peki nöronda ne tutulur?</h3><p>Kalıcı tek şey ufak bir eşik değeri: <b>bias</b> — nöronun ne kadar kolay “ateşleneceği”. Ürettiği değer (aktivasyon) ise anlıktır, saklanmaz; her girdide yeniden hesaplanır.</p></div></div>
+      <div class="row"><div class="dot">🏔️</div><div><h3>“Derin” = çok katman</h3><p>Katman sayısı arttıkça model daha soyut örüntüleri yakalar: harflerden kelimelere, kelimelerden anlama.</p></div></div>
+      <div class="row"><div class="dot">💯</div><div><h3>Ölçek</h3><p>Ağırlıklar + bias'lar = <b>parametre</b>. Buradaki oyuncak ağda birkaç yüz parametre var; frontier modellerde <b>milyarlarca</b>.</p></div></div>
+    </div>
+    <div class="demo-box" style="margin-bottom:0">
+      <svg id="nn1" viewBox="0 0 460 300" style="width:100%"></svg>
+      <div style="display:flex;gap:.6rem;align-items:center;margin-top:.4rem;flex-wrap:wrap">
+        <button class="btn" onclick="firePulse('nn1')">Sinyali ilet ▶</button>
+        <button class="btn" style="background:var(--teal);color:#fff" onclick="toggleWeights('nn1')" id="nn1-wbtn">Ağırlıkları göster</button>
+      </div>
+      <p id="nn1-msg" style="font-size:.85rem;color:var(--muted);margin-top:.5rem">Girdi soldan girer, katman katman işlenir.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 4b · NÖRONDA NE TUTULUR -->
+<section class="slide">
+  <div class="kicker">Temel · Motorun içi 2/4</div>
+  <h1>Nöronun içinde ne tutulur?</h1>
+  <div class="grid2" style="align-items:start;gap:1rem 2rem">
+    <div>
+      <div class="row"><div class="dot">🎚️</div><div><h3>Bias: kalıcı eşik ayarı</h3><p>Gelen sinyallerin toplamına eklenen sabit sayı — nöronun “huyu”. Yüksekse kolay tetiklenir, çok negatifse zor. Alarm hassasiyeti gibi: kimi kedi geçince öter, kimi kapı kırılmadan ötmez. Eğitim bu ayarı da düzeltir; modelin dosyasına <b>kalıcı</b> yazılır.</p></div></div>
+      <div class="row"><div class="dot">💭</div><div><h3>Aktivasyon: anlık cevap</h3><p>Nöronun o girdi için ürettiği değer — “ben bu cümle için 0.73 diyorum”. Bu bir <b>cevaptır, ayar değil</b>: cümle işlenince biter, yenisi gelince sıfırdan hesaplanır. Hesap makinesi gibi — tuşlar aynı kalır, ekrandaki sayı her işlemde değişir.</p></div></div>
+      <div class="row"><div class="dot">💾</div><div><h3>Ağırlıklar + bias'lar = parametre</h3><p>Diske yazılan, “modelin bilgisi” dediğimiz şey bu ikisi. “Milyarlarca parametre” lafı tam olarak bunların sayısı. Aktivasyonlar ise anlık düşünme süreci — hesap bitince uçar.</p></div></div>
+    </div>
+    <div class="demo-box" style="margin-bottom:0">
+      <p style="font-size:.88rem;margin-bottom:.6rem"><b>Tek nöronla oynayın:</b></p>
+      <p style="font-size:.83rem;color:var(--muted)">Gelen sinyal (girdiler × ağırlıklar): <b id="neu-sig-v">4</b></p>
+      <input type="range" id="neu-sig" min="0" max="10" value="4" style="width:100%" oninput="neuDemo()">
+      <p style="font-size:.83rem;color:var(--muted);margin-top:.5rem">Bias (eşik ayarı): <b id="neu-bias-v">-6</b></p>
+      <input type="range" id="neu-bias" min="-10" max="4" value="-6" style="width:100%" oninput="neuDemo()">
+      <div style="display:flex;align-items:center;gap:1rem;margin-top:.9rem">
+        <div id="neu-circle" style="width:74px;height:74px;border-radius:50%;background:#cbd5e1;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:1rem;transition:all .3s">0</div>
+        <div>
+          <p style="font-size:.9rem"><b id="neu-state" style="color:var(--muted)">Sessiz</b></p>
+          <p style="font-size:.8rem;color:var(--muted)" id="neu-calc">4 + (-6) = -2 → negatif, ateşlenmedi (aktivasyon: 0)</p>
+        </div>
+      </div>
+      <p style="font-size:.78rem;color:var(--muted);margin-top:.7rem">Eğitim <b>kaydırıcıları</b> (ağırlıkları ve bias'ı) ayarlar; içerideki sayı ise her girdide yeniden hesaplanır.</p>
+    </div>
+  </div>
+  <div class="banner" style="margin-top:1rem"><b>Mihenk taşı:</b> Model, sohbetinizi ağırlıklarına <i>yazmaz</i>. Eğitim bitti, parametreler donduruldu — sohbette “hatırladığı” her şey birazdan göreceğimiz <b>context</b>'ten gelir.</div>
+</section>
+
+<!-- 4c · BACKPROPAGATION -->
+<section class="slide">
+  <div class="kicker">Temel · Motorun içi 3/4</div>
+  <h1>Backpropagation: Hatadan öğrenmek</h1>
+  <div class="grid2" style="align-items:start;gap:1rem 2rem">
+    <div>
+      <p class="lead" style="margin-bottom:.7rem">Dart öğrenmek gibi: <b>at → nereye saplandığına bak → elini birazcık düzelt → tekrar at.</b> Model de aynısını yapar:</p>
+      <div style="display:flex;gap:.5rem;margin-bottom:.9rem;flex-wrap:wrap">
+        <span style="background:var(--tint);border-radius:99px;padding:.35rem .8rem;font-size:.82rem"><b style="color:var(--primary)">1</b> Tahmin et</span>
+        <span style="background:var(--tint);border-radius:99px;padding:.35rem .8rem;font-size:.82rem"><b style="color:var(--primary)">2</b> Doğru cevapla farkı ölç</span>
+        <span style="background:var(--tint);border-radius:99px;padding:.35rem .8rem;font-size:.82rem"><b style="color:var(--primary)">3</b> Ağırlıkları azıcık düzelt</span>
+      </div>
+      <div class="demo-box" style="margin-bottom:0">
+        <p style="font-size:.9rem;margin-bottom:.4rem">Hedef: “Bugün hava çok <b style="color:var(--primary)">güzel</b>” · Modelin “güzel” tahmini:</p>
+        <div class="prob"><span class="w">güzel</span><div class="bar" id="bp-bar" style="width:9%;transition:width .6s"></div><span class="pct" id="bp-pct">%12</span></div>
+        <p style="font-size:.9rem;margin:.6rem 0 .2rem">Hata (loss):</p>
+        <div class="meter" style="margin-top:0"><div id="bp-loss" style="width:88%;background:#dc2626"></div></div>
+        <div style="display:flex;gap:.6rem;align-items:center;margin-top:.9rem">
+          <button class="btn" onclick="trainStep()">Bir eğitim adımı at 🔄</button>
+          <button class="btn" style="background:#e2e8f0;color:var(--ink)" onclick="resetTrain()">Sıfırla</button>
+        </div>
+        <p id="bp-msg" style="font-size:.85rem;color:var(--muted);margin-top:.6rem">Adım 0 — model daha hiçbir şey öğrenmedi, tahmin neredeyse rastgele.</p>
+      </div>
+    </div>
+    <div class="demo-box" style="margin-bottom:0">
+      <svg id="nn2" viewBox="0 0 460 300" style="width:100%"></svg>
+      <p style="font-size:.8rem;color:var(--muted);margin-top:.3rem"><span style="color:var(--mint)">●</span> ileri: tahmin &nbsp; <span style="color:#F59E0B">●</span> geri: hatayı geriye yay, ağırlıkları düzelt</p>
+      <p style="font-size:.8rem;color:var(--teal);margin-top:.2rem">Adım attıkça izleyin: işe yarayan bağlantılar <b>kalınlaşıyor</b> — “öğrenmek” dediğimiz şey bu.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 4c · TRANSFORMER & ATTENTION -->
+<section class="slide">
+  <div class="kicker">Temel · Motorun içi 4/4</div>
+  <h1>Transformer &amp; Attention</h1>
+  <p class="lead">2017'de gelen mimari — GPT'deki “T”. Sırrı <b>attention</b>: her kelime, cümledeki diğer kelimelere “bakıp” hangisinin kendisi için önemli olduğunu tartar. <b>Bir kelimeye tıklayın:</b></p>
+  <div class="demo-box">
+    <div id="att-wrap" style="position:relative;padding-top:70px">
+      <svg id="att-svg" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none"></svg>
+      <div id="att-words" style="display:flex;flex-wrap:wrap;gap:.5rem;font-size:1.35rem"></div>
+    </div>
+    <p id="att-note" style="font-size:.9rem;color:var(--teal);margin-top:.9rem;min-height:1.4rem">Çizgi kalınlığı = attention ağırlığı: model o kelimeye ne kadar “bakıyor”.</p>
+  </div>
+  <div class="grid2">
+    <div class="row"><div class="dot">👁️</div><div><h3>Belirsizliği bağlamla çözer</h3><p>“o” kim? Attention, “aç olmak” ile “kedi” arasındaki bağı yakalar — kabı değil kediyi işaret ettiğini böyle anlar.</p></div></div>
+    <div class="row"><div class="dot">🚀</div><div><h3>Bugünkü sıçramanın kalbi</h3><p>Uzun metinde bağlamı takip etmeyi attention mümkün kıldı. Birazdan konuşacağımız “context” kavramının teknik temeli de bu.</p></div></div>
+  </div>
+</section>
+
+<!-- 5 · FRONTIER -->
+<section class="slide">
+  <div class="kicker">Temel</div>
+  <h1>Frontier modeller nasıl çalışır?</h1>
+  <p class="lead">Ham tahmin makinesinden işe yarar asistana giden yol üç adım:</p>
+  <div class="grid3">
+    <div class="card"><div class="dot" style="background:var(--primary)">🎓</div><h3>1 · Ön eğitim</h3><p>İnternet ölçeğinde metinle “sıradaki kelime” oyunu. Dil, bilgi ve akıl yürütme örüntülerinin tamamı bu aşamada oluşuyor.</p></div>
+    <div class="card"><div class="dot" style="background:var(--teal)">⚖️</div><h3>2 · İnce ayar (RLHF)</h3><p>İnsan geri bildirimiyle eğitim: yardımcı, dürüst ve güvenli cevaplar ödüllendiriliyor. Bildiğimiz “asistan kişiliği” burada doğuyor.</p></div>
+    <div class="card"><div class="dot" style="background:var(--mint)">✨</div><h3>3 · Muhakeme + Araçlar</h3><p>Cevaptan önce “düşünme” adımları, web araması, kod çalıştırma. Model artık sadece konuşmuyor — iş yapıyor.</p></div>
+  </div>
+  <p class="foot">Claude, GPT, Gemini... hepsi bu üç katmanın üstüne kurulu.</p>
+</section>
+
+<!-- 6 · PROMPT NEDİR -->
+<section class="slide">
+  <div class="kicker">1 / Prompt</div>
+  <h1>Prompt nedir?</h1>
+  <p class="lead">Modele gönderdiğin her şey. Model aklından geçeni bilemez — <b>ne verirsen onunla tahmin yürütür.</b> Parçaları ekleyip prompt'un nasıl güçlendiğini izleyin:</p>
+  <div class="grid2" style="align-items:start">
+    <div>
+      <div class="toggler" id="toggler">
+        <button data-k="rol" onclick="tog(this)">+ Rol</button>
+        <button data-k="gorev" class="on" onclick="tog(this)">Görev</button>
+        <button data-k="baglam" onclick="tog(this)">+ Bağlam</button>
+        <button data-k="format" onclick="tog(this)">+ Format</button>
+        <button data-k="ornek" onclick="tog(this)">+ Örnek</button>
+      </div>
+      <div class="meter"><div id="meter-fill"></div></div>
+      <p id="meter-label" style="font-size:.85rem;color:var(--muted);margin-top:.4rem">Prompt gücü: zayıf — model olasılık uzayının ortasına gider, “ortalama” bir cevap alırsın.</p>
+    </div>
+    <div class="preview" id="preview"></div>
+  </div>
+</section>
+
+<!-- 7 · PE TEMEL -->
+<section class="slide">
+  <div class="kicker">1 / Prompt</div>
+  <h1>Prompt Engineering: Temeller</h1>
+  <p class="lead" style="margin-bottom:.8rem">Satırlara tıklayın — taktiğin <b>modelin içinde</b> neyi değiştirdiğini görün:</p>
+  <div class="grid2">
+    <div class="row"><div class="dot">🎯</div><div><h3>Net ve spesifik ol<span class="whyhint">⚡ neden?</span></h3><p>Hedefi, kitleyi, başarı ölçütünü söyle. “Güzel olsun” değil; “2 paragraf, teknik bilmeyen birinin anlayacağı dille”.</p><div class="why">⚡ Model bir olasılık dağılımından örnekler. Belirsiz prompt = geniş dağılım = herkese yazılmış “ortalama” cevap. Eklediğin her kısıt, dağılımı senin istediğin bölgeye daraltır — rol vermek bile modelin içinde bambaşka örüntüleri aktive eder.</div></div></div>
+    <div class="row"><div class="dot">📄</div><div><h3>Örnek göster (few-shot)<span class="whyhint">⚡ neden?</span></h3><p>Bir–iki iyi örnek, sayfalarca tariften daha iyi yönlendirir. “Şuna benzesin” demek çoğu zaman yeterli.</p><div class="why">⚡ Model, eğitiminde milyarlarca kez “örüntüyü sürdür” oynadı. Örnek verince, ağırlıklarında zaten var olan o kalıbı uyandırırsın: attention örneğe bakar ve deseni kopyalar. Tarif soyuttur, örnek somut hedeftir.</div></div></div>
+    <div class="row"><div class="dot">🔢</div><div><h3>Adım adım düşündür<span class="whyhint">⚡ neden?</span></h3><p>Karmaşık işte “önce planla, sonra yap” de. Süreci parçalara bölmek hem kaliteyi hem kontrolü artırır.</p><div class="why">⚡ Model her token'ı öncekilere bakarak üretir. Ara adımları yazdırmak iskele kurar: kendi ürettiği doğru adımlar context'e girer ve sonraki adımın isabet olasılığını yükseltir. Tek hamlede cevap istemek, iskelesiz üçüncü kata çıkmak gibi.</div></div></div>
+    <div class="row"><div class="dot">✒️</div><div><h3>Formatı baştan söyle<span class="whyhint">⚡ neden?</span></h3><p>Tablo mu, madde madde mi, e-posta mı? Çıktının şeklini baştan tarif et; sonradan düzeltmekle uğraşma.</p><div class="why">⚡ Çıktının ilk birkaç token'ı gerisini kilitler: model tabloyla başlarsa tablo olarak sürdürür. Formatı baştan vermek, üretimi doğru raya en baştan sokar.</div></div></div>
+    <div class="row"><div class="dot">🔁</div><div><h3>İlk cevabı final sanma<span class="whyhint">⚡ neden?</span></h3><p>İlk çıktı taslaktır. Neyin eksik olduğunu söyle, yeniden iste. Bu bir diyalog — tek atışlık bir sınav değil.</p><div class="why">⚡ Her turda cevap + senin geri bildirimin context'e eklenir; model artık “bu kullanıcının beğenmediği şeyleri” de görerek tahmin yapar. Dağılım her turda hedefe biraz daha daralır.</div></div></div>
+    <div class="row"><div class="dot">✂️</div><div><h3>“Yapma” değil, “yap”<span class="whyhint">⚡ neden?</span></h3><p>“Şundan bahsetme” yerine “şuna odaklan” de. Model, pozitif yönergeyi çok daha iyi takip eder.</p><div class="why">⚡ “Pembe fili düşünme” etkisi: “X'ten bahsetme” demek X'i context'e sokar ve attention ona da bakar — X'in olasılığı istemeden yükselir. Pozitif yönerge olasılığı doğrudan hedefe iter.</div></div></div>
+  </div>
+</section>
+
+<!-- 8 · PE PRO -->
+<section class="slide">
+  <div class="kicker">1 / Prompt</div>
+  <h1>Prompt Engineering: Pro taktikler</h1>
+  <p class="lead" style="margin-bottom:.8rem">Yine tıklayın — mekanizmalar burada daha da ilginç:</p>
+  <div class="grid2">
+    <div class="row"><div class="dot">🏷️</div><div><h3>Yapıyı etiketle<span class="whyhint">⚡ neden?</span></h3><p>Uzun promptta bölümleri ayır: <code>&lt;talimat&gt;</code>, <code>&lt;veri&gt;</code>, <code>&lt;örnek&gt;</code>. Model neyin kural, neyin malzeme olduğunu karıştırmaz.</p><div class="why">⚡ Attention, yapısal sınırları güçlü bir ipucu olarak kullanır: etiket, “bu bölüm talimat, şu bölüm işlenecek veri” ayrımını netleştirir. Etiketsiz uzun metinde veri içindeki bir cümle yanlışlıkla talimat gibi işlenebilir.</div></div></div>
+    <div class="row"><div class="dot">🚪</div><div><h3>Çıkış kapısı bırak<span class="whyhint">⚡ neden?</span></h3><p>“Emin değilsen bilmiyorum de, uydurma.” Tek cümle — ama uydurmayı ciddi ölçüde azaltır.</p><div class="why">⚡ Model her durumda bir sonraki token'ı üretmek <i>zorunda</i> — “boş bırakmak” diye bir seçeneği yok. “Bilmiyorum” demeyi geçerli bir devam yolu yapmazsan, en olası görünen uydurma devam yolunu seçer. Kapıyı açınca düşük güvenli tahmin yerine orada durabilir.</div></div></div>
+    <div class="row"><div class="dot">🗺️</div><div><h3>Önce plan, sonra iş<span class="whyhint">⚡ neden?</span></h3><p>Büyük işte önce planı iste, onayla, sonra yaptır. Yanlış yönü 10 dakika sonra değil, 30 saniyede yakalarsın.</p><div class="why">⚡ Onaylanan plan context'e girer ve sonraki <i>bütün</i> token üretimi ona koşullanır — model artık plana “bakarak” yazar. Plansız üretimde her paragraf bir öncekinin üstüne kayar; rota baştan sapmışsa geri dönüş pahalıdır.</div></div></div>
+    <div class="row"><div class="dot">🔍</div><div><h3>Kendi işini eleştirt<span class="whyhint">⚡ neden?</span></h3><p>“Cevabını gözden geçir, en zayıf üç noktayı bul, düzelt.” İkinci geçiş, neredeyse bedavaya gelen kalite artışı.</p><div class="why">⚡ Üretirken model metni token token, geriye dönemeden yazar. İkinci geçişte ise <i>bitmiş metnin tamamı</i> context'te durur — attention bütüne bakabilir. Üretici ve eleştirmen aynı model olsa da, gördükleri manzara farklıdır.</div></div></div>
+    <div class="row"><div class="dot">🪄</div><div><h3>Prompt'u modele yazdır<span class="whyhint">⚡ neden?</span></h3><p>“Bu iş için ideal prompt'u sen yaz” de; çıkanı düzenleyip kullan.</p><div class="why">⚡ Model, eğitim verisinde sayısız iyi talimat-cevap çifti gördü; hangi kelimelerin üretimi nereye çektiğini örtük olarak “bilir”. Kendi dağılımını en iyi kaydıracak kelimeleri, çoğu zaman senden iyi seçer.</div></div></div>
+    <div class="row"><div class="dot">📏</div><div><h3>Değerlendirme ölçütü ver<span class="whyhint">⚡ neden?</span></h3><p>“Çıktı şu 4 kritere göre değerlendirilecek” diye baştan söyle; model kendini o kriterlere göre ayarlar.</p><div class="why">⚡ Kriterler context'te durduğu sürece her token üretimi onlara koşullanır — model her cümlede rubrike “bakar”. Sonradan söylenen kriter ise ancak bir sonraki denemeyi etkiler.</div></div></div>
+  </div>
+</section>
+
+<!-- 9 · CONTEXT NEDİR -->
+<section class="slide">
+  <div class="kicker">2 / Context</div>
+  <h1>Context nedir?</h1>
+  <div class="grid2" style="align-items:start">
+    <div>
+      <p class="lead" style="margin-bottom:1rem">Modelin o an <b>görebildiği her şey.</b> Sınırlı bir çalışma masası gibi düşünün: üstüne ne koyarsanız onunla çalışır; masa dolunca da işler karışmaya başlar.</p>
+      <div class="demo-box" style="margin-bottom:0">
+        <p style="font-size:.85rem;color:var(--muted)">Sohbet uzadıkça ne olur? Kaydırın:</p>
+        <input type="range" id="rot" min="0" max="100" value="15" style="width:100%;margin:.6rem 0" oninput="rotDemo(this.value)">
+        <p style="font-size:.9rem">Masa doluluğu: <b id="rot-fill">%15</b> · Dikkat kalitesi: <b id="rot-q" style="color:var(--mint)">yüksek</b></p>
+        <p id="rot-msg" style="font-size:.83rem;color:var(--muted);margin-top:.3rem">Az ve öz — model her detayı net görüyor.</p>
+      </div>
+    </div>
+    <div>
+      <div class="win" id="ctxwin">
+        <p style="text-align:center;font-size:.75rem;font-weight:700;letter-spacing:.2em;color:var(--teal);margin-bottom:.6rem">CONTEXT WINDOW</p>
+        <div class="layer" style="background:var(--dark)">Sistem talimatları</div>
+        <div class="layer" style="background:var(--primary)">Konuşma geçmişi</div>
+        <div class="layer" style="background:var(--teal)">Dosyalar / dokümanlar</div>
+        <div class="layer" style="background:#4E98B5">Araç çıktıları</div>
+        <div class="layer" style="background:var(--mint);color:#06342b;margin-bottom:0">Son mesajın</div>
+      </div>
+      <p style="font-size:.85rem;color:var(--muted);margin-top:.7rem">Model her kelimeyi <b>bunların tamamına</b> bakarak seçiyor. Masada ne olduğu, cevabın kalitesini doğrudan belirliyor.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 10 · CE TEMEL -->
+<section class="slide">
+  <div class="kicker">2 / Context</div>
+  <h1>Context Engineering: Temeller</h1>
+  <p class="lead">Prompt “ne söylediğin”, context “masada ne olduğu”. Satırlara tıklayın — mekanizmayı görün:</p>
+  <div class="grid2">
+    <div class="row tealdot"><div class="dot">📂</div><div><h3>Doğru malzemeyi sen ver<span class="whyhint">⚡ neden?</span></h3><p>İlgili dosyayı, veriyi, tasarımı kendin ekle. Modeli tahmin yürütmek zorunda bırakma.</p><div class="why">⚡ Context'te olmayan bilgiyi model ağırlıklarından “tamamlar” — yani eğitim verisindeki benzerlerinden uydurur. Dosya masadaysa attention gerçeğe bakar; yoksa en olası tahmine.</div></div></div>
+    <div class="row tealdot"><div class="dot">🧹</div><div><h3>Masayı temiz tut<span class="whyhint">⚡ neden?</span></h3><p>Konuyla ilgisi olmayan her şey gürültü. “Belki lazım olur” diye on dosya birden yükleme.</p><div class="why">⚡ Attention sabit bir bütçe gibidir: her token, diğer tüm token'lara dağıtılacak dikkatten pay alır. Alakasız 5.000 token, kritik 50 token'ın alacağı dikkati sulandırır — önemli detay gözden kaçar.</div></div></div>
+    <div class="row tealdot"><div class="dot">🔄</div><div><h3>Yeni iş, yeni sohbet<span class="whyhint">⚡ neden?</span></h3><p>Uzayan sohbet çöplenir. Konu değiştiyse temiz sayfayla başlamak neredeyse her zaman daha iyi sonuç verir.</p><div class="why">⚡ Model her cevabı context'in <i>tamamına</i> koşullar — eski konunun token'ları hâlâ dağılımı kendine çeker. Önceki tartışmalar, düzeltilen yanlışlar, terk edilen fikirler... hepsi yeni cevaba sızar.</div></div></div>
+    <div class="row tealdot"><div class="dot">✂️</div><div><h3>Özetletip devam et<span class="whyhint">⚡ neden?</span></h3><p>Uzun sohbetin özetini çıkarttır, yeni sohbete o özetle başla. Masa boşalır ama bilgi kaybolmaz.</p><div class="why">⚡ Özet, sinyal/gürültü oranını yükseltir: aynı bilgi onda bir token'la. Dikkat sulanmaz, window dolmaz, kritik kararlar “ortada kaybolmaz”.</div></div></div>
+  </div>
+  <div class="banner"><b>Altın kural:</b> En iyi cevabı, işi yapmaya yetecek <i>en az ve en doğru</i> bilgi verir.</div>
+</section>
+
+<!-- 11 · CE PRO -->
+<section class="slide">
+  <div class="kicker">2 / Context</div>
+  <h1>Context Engineering: Pro taktikler</h1>
+  <p class="lead" style="margin-bottom:.8rem">Tıklayın — bunların hepsi attention'ın çalışma şeklinden doğuyor:</p>
+  <div class="grid2">
+    <div class="row tealdot"><div class="dot">👁️</div><div><h3>“Ortada kaybolma” etkisi<span class="whyhint">⚡ neden?</span></h3><p>Model context'in başını ve sonunu iyi hatırlar, ortası bulanıklaşır. Kritik talimatı hem başa hem sona koy.</p><div class="why">⚡ Attention, dizinin başına ve sonuna yapısal olarak daha güçlü ağırlık verir; eğitim verisinde de önemli bilgi çoğunlukla uçlardadır (başlık, giriş, sonuç). Orta bölge her iki etkiden de payını alamaz.</div></div></div>
+    <div class="row tealdot"><div class="dot">📚</div><div><h3>Önce doküman, sonra soru<span class="whyhint">⚡ neden?</span></h3><p>Uzun içeriği üste, soruyu en alta yaz. Hem modelin dikkati hem önbellek (cache) açısından daha verimli.</p><div class="why">⚡ Cevap üretilirken en “taze” konum son token'lardır — soru sonda olunca üretim doğrudan ona koşullanır. Ayrıca değişmeyen doküman baştaysa sistem onu önbelleğe alır: aynı dokümana ikinci soru daha hızlı ve ucuz işlenir.</div></div></div>
+    <div class="row tealdot"><div class="dot">🗒️</div><div><h3>Dış hafıza kullan<span class="whyhint">⚡ neden?</span></h3><p>Uzun işlerde modele not tuttur (plan.md gibi). Bilgi context'te değil dosyada yaşasın; sohbet sıfırlansa da kaybolmasın.</p><div class="why">⚡ Dosyadaki bilgi, okunana kadar attention bütçesinden tek token harcamaz. Model gerektiğinde açıp bakar — beynimizin her şeyi ezberlemek yerine not defteri kullanması gibi.</div></div></div>
+    <div class="row tealdot"><div class="dot">🗜️</div><div><h3>Özetle ve taşı<span class="whyhint">⚡ neden?</span></h3><p>Sohbet şişince “şu ana kadar olanı özetle” de, özeti yeni sohbete taşı. Claude Code'daki /compact tam olarak bunu yapıyor.</p><div class="why">⚡ Window dolunca en eski mesajlar ya düşer ya sıkışır — hangi bilginin gideceğini sen seçmezsen sistem seçer. Özet, neyin taşınacağına senin karar vermeni sağlar.</div></div></div>
+    <div class="row tealdot"><div class="dot">👥</div><div><h3>Alt-ajanla izole et<span class="whyhint">⚡ neden?</span></h3><p>Araştırma gibi bol çıktı üreten işleri ayrı bir ajana ver; ana sohbete ham veri değil, sadece sonuç dönsün.</p><div class="why">⚡ Alt-ajanın gördüğü binlerce token'lık ham veri, ana modelin dağılımını <i>hiç</i> etkilemez — ayrı bir context'te yaşayıp ölür. Ana sohbete yalnızca damıtılmış sonuç girer ve sadece o koşullar.</div></div></div>
+    <div class="row tealdot"><div class="dot">🚿</div><div><h3>Araç çıktısı da context'tir<span class="whyhint">⚡ neden?</span></h3><p>500 satır log yapıştırma; işe yarayan 20 satırı ver. Gereksiz her satır, modelin dikkatinden çalar.</p><div class="why">⚡ Model için senin yazdığın cümleyle log satırı arasında fark yok — ikisi de attention'dan pay alan token. 480 gereksiz satır, senin tek cümlelik sorunla dikkat için yarışır.</div></div></div>
+  </div>
+</section>
+
+<!-- 12 · HARNESS NEDİR -->
+<section class="slide">
+  <div class="kicker">3 / Harness</div>
+  <h1>Harness nedir?</h1>
+  <p class="lead">Model tek başına yalnızca metin üretir. Harness — Türkçesiyle “koşum takımı” — modelin etrafına kurulan çalışma ortamı: araçlar, dosya erişimi ve <b>iş bitene kadar dönen döngü.</b></p>
+  <div class="loop" id="loop">
+    <div class="node" style="background:var(--dark);color:#fff"><b>Model</b><small>düşünür, karar verir</small></div>
+    <div class="arr">→</div>
+    <div class="node" style="background:var(--tint)"><b>Araç çağrısı</b><small>dosya oku, kod çalıştır, web'de ara</small></div>
+    <div class="arr">→</div>
+    <div class="node" style="background:var(--tintMint)"><b>Sonuç</b><small>çıktı context'e eklenir</small></div>
+    <div class="arr" style="color:var(--mint)">↩</div>
+  </div>
+  <p style="font-size:.9rem;color:var(--teal);font-style:italic;margin-bottom:1rem">İş bitene kadar döngü sürer. “Agent” dediğimiz şey de tam olarak bu: model + araçlar + döngü.</p>
+  <div class="row"><div class="dot">🖥️</div><div><h3>Örnekler</h3><p>Claude Code (terminal) · Cowork (masaüstü) · Cursor (IDE) · Claude in Chrome (tarayıcı). Aynı model, farklı harness'te bambaşka işler başarır.</p></div></div>
+</section>
+
+<!-- 13 · HE TEMEL -->
+<section class="slide">
+  <div class="kicker">3 / Harness</div>
+  <h1>Harness Engineering: Temeller</h1>
+  <p class="lead">Ortamı bir kez doğru kur, her sohbette kazan:</p>
+  <div class="grid2">
+    <div class="row"><div class="dot">📖</div><div><h3>Kalıcı talimatlar</h3><p>Proje kuralları, üslup, kısıtlar tek dosyada dursun (ör. CLAUDE.md). Aynı şeyleri her sohbette baştan anlatma.</p></div></div>
+    <div class="row"><div class="dot">⚙️</div><div><h3>Skill'ler ve şablonlar</h3><p>Tekrarlayan işleri — rapor, sunum, analiz — yeniden kullanılabilir tariflere dönüştür.</p></div></div>
+    <div class="row"><div class="dot">🔌</div><div><h3>Araçları bağla (MCP)</h3><p>Slack, Figma, veritabanı... Model gerçek veriye ulaşabilirse ezbere değil, gerçeğe dayanarak çalışır.</p></div></div>
+    <div class="row"><div class="dot">✅</div><div><h3>Doğrulama adımı ekle</h3><p>Test, lint, önizleme: modelden kendi işini kontrol etmesini iste. Hata üretime değil, döngünün içinde kalsın.</p></div></div>
+  </div>
+  <div class="banner"><i>Prompt bir sohbeti iyileştirir;</i> <b>harness her sohbeti iyileştirir.</b></div>
+</section>
+
+<!-- 14 · HE PRO -->
+<section class="slide">
+  <div class="kicker">3 / Harness</div>
+  <h1>Harness Engineering: Pro taktikler</h1>
+  <div class="grid2">
+    <div class="row"><div class="dot">👀</div><div><h3>Modele gözlerini ver</h3><p>İşini kontrol edebileceği somut bir yol ver: test koştur, ekran görüntüsü aldır, çıktıyı karşılaştırt. Kendi hatasını kendisi görsün — kalite farkı dramatik.</p></div></div>
+    <div class="row"><div class="dot">🧰</div><div><h3>Az araç, doğru araç</h3><p>Bağlanan her araç context tüketir ve seçimi zorlaştırır. Elli aracı birden bağlama; o işte gerekenleri aç.</p></div></div>
+    <div class="row"><div class="dot">🗂️</div><div><h3>Talimat hiyerarşisi kur</h3><p>Global → proje → klasör düzeyinde kurallar. Aynı düzeltmeyi ikinci kez yaptıysan, o artık bir kuraldır — dosyaya yaz.</p></div></div>
+    <div class="row"><div class="dot">📦</div><div><h3>Üçüncü tekrarı skill'leştir</h3><p>Aynı tür işi üçüncü kez yapıyorsan tarife dönüştür ve ekiple paylaş. Bir kişinin öğrendiği, herkesin kazancı olsun.</p></div></div>
+    <div class="row"><div class="dot">🛡️</div><div><h3>Sınırları baştan çiz</h3><p>Hangi klasöre yazabilir, hangi komut onaysız çalışır? Güven ama sınırla — gönül rahatlığıyla delege etmenin yolu bu.</p></div></div>
+    <div class="row"><div class="dot">⚡</div><div><h3>Paralelleştir</h3><p>Birbirinden bağımsız işleri ayrı ajanlara böl; sen orkestra şefi ol. Her şeyi tek sohbete sırayla yığmak en yavaş yol.</p></div></div>
+  </div>
+</section>
+
+<!-- BONUS · CLAUDE CODE TAKTİKLERİ -->
+<section class="slide">
+  <div class="kicker">3 / Harness · Bonus</div>
+  <h1>Claude Code: Cepten taktikler</h1>
+  <div class="grid2" style="gap:.6rem 2rem">
+    <div class="row"><div class="dot">🧠</div><div><h3>CLAUDE.md hiyerarşisi</h3><p>Global → proje → klasör düzeyinde talimat dosyaları. Sohbet içinde <code>#</code> ile başlarsan söylediğin kalıcı hafızaya yazılır — “bunu hep hatırla” demenin kısa yolu.</p></div></div>
+    <div class="row"><div class="dot">🗺️</div><div><h3>Plan mode ile başla</h3><p><code>Shift+Tab</code> ile plan moduna geç: model dosyalara dokunmadan önce plan çıkarır, sen onaylarsın. Büyük değişiklikte ilk refleksin bu olsun.</p></div></div>
+    <div class="row"><div class="dot">🧹</div><div><h3>/clear ve /compact</h3><p>Yeni işe geçerken <code>/clear</code> (temiz masa), uzun iş şişince <code>/compact</code> (özetleyip devam). Context yönetiminin klavye kısayolu hali.</p></div></div>
+    <div class="row"><div class="dot">📦</div><div><h3>Skill'leri repo'ya koy</h3><p><code>.claude/skills/</code> altındaki tarifler repo ile birlikte gelir: bir kişinin yazdığı “release notu çıkar” skill'ini bütün ekip kullanır. Üçüncü tekrar = skill kuralını burada işlet.</p></div></div>
+    <div class="row"><div class="dot">👥</div><div><h3>Subagent = context izolasyonu</h3><p><code>.claude/agents/</code> ile özel ajanlar tanımla. Araştırma, kod tarama gibi bol çıktılı işleri onlara ver — binlerce token'lık ham veri ana sohbete hiç girmez, sadece sonuç döner.</p></div></div>
+    <div class="row"><div class="dot">🌳</div><div><h3>git worktree ile paralel çalış</h3><p>Aynı repodan iki-üç worktree aç, her birinde ayrı Claude oturumu: biri feature yazar, biri bug çözer. Bağımsız işleri sıraya değil, yan yana koy.</p></div></div>
+    <div class="row"><div class="dot">⚖️</div><div><h3>Yazan ≠ denetleyen</h3><p>Multi-agent'in en basit ve en etkili hali: bir oturum kodu yazsın, temiz context'li ikinci oturum review etsin. Kendi yazdığını denetleyen model, kendi hatasına senin kadar kör olur.</p></div></div>
+    <div class="row"><div class="dot">🪝</div><div><h3>Hook'larla otomatik doğrula</h3><p>Her dosya düzenlemesinden sonra otomatik test/lint koşturan hook'lar kur. Model hatasını sen fark etmeden, döngünün içinde görür ve düzeltir.</p></div></div>
+  </div>
+  <div class="banner" style="margin-top:.8rem"><b>Ortak tema:</b> context'i koru, doğrulamayı otomatikleştir, bağımsız işleri paralelleştir — üçü de az önceki mekanizmalardan çıkıyor.</div>
+</section>
+
+<!-- 15 · KAPANIŞ -->
+<section class="slide dark">
+  <h1 style="margin-bottom:2rem">Peki, nasıl daha iyi kullanacağız?</h1>
+  <div style="max-width:46rem">
+    <div class="takeaway"><div class="num">1</div><div><h3>Derdini net anlat</h3><p>Hedef, kitle, format, örnek. Model aklından geçeni bilemez — prompt, tahmini yönlendirir.</p></div></div>
+    <div class="takeaway"><div class="num">2</div><div><h3>Masayı yönet</h3><p>Doğru dosyayı ver, gürültüyü at, konu değişince yeni sohbet aç.</p></div></div>
+    <div class="takeaway"><div class="num">3</div><div><h3>Ortamı kur</h3><p>Kalıcı talimatlar, araç bağlantıları, skill'ler: bir kez kur, her gün kazan.</p></div></div>
+    <div class="takeaway"><div class="num">4</div><div><h3>Doğrulat ve yinele</h3><p>İlk çıktı taslaktır. Kontrol ettir, geri bildirim ver, tekrar iste.</p></div></div>
+  </div>
+  <p style="color:var(--mint);font-style:italic;font-size:1.1rem;margin-top:auto">Teşekkürler — sorularınızı alayım.</p>
+</section>
+
+</div>
+
+<div class="counter" id="counter">1 / 15</div>
+<div class="nav">
+  <button onclick="go(-1)" aria-label="Önceki">‹</button>
+  <button onclick="go(1)" aria-label="Sonraki">›</button>
+</div>
+<div class="hint">← → tuşları veya oklarla gezinin</div>
+
+<script>
+const slides=[...document.querySelectorAll('.slide')];let cur=0;
+function show(i){cur=Math.max(0,Math.min(slides.length-1,i));
+  slides.forEach((s,j)=>s.classList.toggle('active',j===cur));
+  document.getElementById('counter').textContent=(cur+1)+' / '+slides.length;
+  document.getElementById('progress').style.width=((cur+1)/slides.length*100)+'%';
+  if(slides[cur].querySelector('#loop'))startLoop();else stopLoop();}
+function go(d){show(cur+d)}
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown')go(1);
+  if(e.key==='ArrowLeft'||e.key==='PageUp')go(-1);
+  if(e.key==='Home')show(0); if(e.key==='End')show(slides.length-1);});
+let tsx=null;document.addEventListener('touchstart',e=>tsx=e.touches[0].clientX);
+document.addEventListener('touchend',e=>{if(tsx===null)return;const dx=e.changedTouches[0].clientX-tsx;if(Math.abs(dx)>60)go(dx<0?1:-1);tsx=null;});
+
+/* S2: tahmin demosu */
+function predict(){
+  document.querySelectorAll('#probs .bar').forEach(b=>{b.style.width='0';setTimeout(()=>b.style.width=(b.dataset.w*0.55)+'%',60);});
+  const blank=document.getElementById('blank');blank.textContent='';let w='güzel',i=0;
+  const t=setInterval(()=>{blank.textContent=w.slice(0,++i);blank.style.borderBottomColor='var(--mint)';if(i>=w.length)clearInterval(t);},120);}
+
+/* S3: token demosu */
+const sentences=[
+  {s:'“Yarınki sunumum heyecanlı geçecek.”',t:['Yarın','ki',' sunum','um',' heyecan','lı',' geç','ecek','.']},
+  {s:'“Merhaba dünya!”',t:['Merhaba',' dünya','!']},
+  {s:'“Otsimo’da harika işler yapıyoruz.”',t:['Ot','simo','’da',' harika',' işler',' yap','ıyoruz','.']}
+];
+let si=0;const tokColors=['#065A82','#1C7293'];
+function nextSentence(){si=(si+1)%sentences.length;document.getElementById('tok-sent').textContent=sentences[si].s;
+  document.getElementById('tok-area').innerHTML='';document.getElementById('tok-count').textContent='';}
+function tokenize(){
+  const area=document.getElementById('tok-area');area.innerHTML='';
+  sentences[si].t.forEach((tk,i)=>{
+    const el=document.createElement('span');el.className='tok';el.textContent=tk.trim()||tk;el.style.background=tokColors[i%2];
+    area.appendChild(el);setTimeout(()=>el.classList.add('show'),i*160);});
+  setTimeout(()=>document.getElementById('tok-count').textContent='→ '+sentences[si].t.length+' token',sentences[si].t.length*160);}
+
+/* ===== Sinir ağı çizimi + animasyonlar ===== */
+const NN={};
+function drawNet(id){
+  const svg=document.getElementById(id);if(!svg)return;
+  const layers=[3,5,5,2],xs=[50,180,300,420],H=300;
+  const nodes=[],lines=[];
+  layers.forEach((n,l)=>{
+    const col=[];const gap=H/(n+1);
+    for(let i=0;i<n;i++)col.push({x:xs[l],y:gap*(i+1)});
+    nodes.push(col);});
+  let svgHtml='',li=0;
+  for(let l=0;l<layers.length-1;l++)
+    for(const a of nodes[l])for(const b of nodes[l+1]){
+      const w=0.15+0.85*((Math.sin(li*127.1)+1)/2), sgn=(li%3===0?-1:1);
+      svgHtml+='<line class="nn-line" data-l="'+l+'" data-w="'+w.toFixed(2)+'" x1="'+a.x+'" y1="'+a.y+'" x2="'+b.x+'" y2="'+b.y+'"><title>ağırlık: '+(sgn*w).toFixed(2)+'</title></line>';
+      li++;}
+  nodes.forEach((col,l)=>{col.forEach(p=>{
+    svgHtml+='<circle class="nn-node" data-l="'+l+'" cx="'+p.x+'" cy="'+p.y+'" r="11"/>';});});
+  svgHtml+='<text x="50" y="292" text-anchor="middle" font-size="11" fill="#5B6B7A">girdi</text>';
+  svgHtml+='<text x="240" y="292" text-anchor="middle" font-size="11" fill="#5B6B7A">gizli katmanlar (“derin” kısım)</text>';
+  svgHtml+='<text x="420" y="292" text-anchor="middle" font-size="11" fill="#5B6B7A">çıktı</text>';
+  svg.innerHTML=svgHtml;NN[id]={layers:layers.length};}
+function pulse(id,cls,reverse,done){
+  const svg=document.getElementById(id),L=NN[id].layers;
+  for(let s=0;s<L;s++){
+    const l=reverse?L-1-s:s;
+    setTimeout(()=>{
+      svg.querySelectorAll('.nn-node[data-l="'+l+'"]').forEach(n=>n.classList.add(cls));
+      svg.querySelectorAll('.nn-line[data-l="'+(reverse?l:l-1)+'"]').forEach(n=>n.classList.add(cls));
+      setTimeout(()=>{
+        svg.querySelectorAll('.nn-node[data-l="'+l+'"]').forEach(n=>n.classList.remove(cls));
+        svg.querySelectorAll('.nn-line[data-l="'+(reverse?l:l-1)+'"]').forEach(n=>n.classList.remove(cls));
+      },420);
+      if(s===L-1&&done)setTimeout(done,430);
+    },s*330);}}
+function firePulse(id){pulse(id,'live',false);
+  const m=document.getElementById(id+'-msg');
+  if(m){m.textContent='Her nöron, gelen sinyalleri bağlantı ağırlıklarıyla çarpıp topladı ve sonucu bir sonraki katmana yolladı.';}}
+
+/* Ağırlıkları görselleştir */
+let wShown=false;
+function toggleWeights(id){
+  const svg=document.getElementById(id);wShown=!wShown;
+  svg.querySelectorAll('.nn-line').forEach(ln=>{
+    const w=+ln.dataset.w;
+    if(wShown){
+      if(w>0.62){ln.style.strokeWidth=(1+w*2.6);ln.style.stroke='#065A82';ln.style.opacity='0.95';}
+      else{ln.style.strokeWidth='0.8';ln.style.stroke='#C9D8E2';ln.style.opacity='0.45';}}
+    else{ln.style.strokeWidth='';ln.style.stroke='';ln.style.opacity='';}});
+  document.getElementById(id+'-wbtn').textContent=wShown?'Ağırlıkları gizle':'Ağırlıkları göster';
+  const m=document.getElementById(id+'-msg');
+  if(m)m.innerHTML=wShown
+    ?'<svg width="34" height="10" style="vertical-align:middle"><line x1="0" y1="5" x2="34" y2="5" stroke="#065A82" stroke-width="3.4"/></svg> güçlü bağlantı (ör. 0.9) &nbsp;·&nbsp; <svg width="34" height="10" style="vertical-align:middle"><line x1="0" y1="5" x2="34" y2="5" stroke="#C9D8E2" stroke-width="1"/></svg> zayıf (ör. 0.1). Ağırlık, çizginin üzerinde yaşar — eğitim bu sayıları ayarlar.'
+    :'Girdi soldan girer, katman katman işlenir.';}
+
+/* Backpropagation demosu */
+const bpProbs=[12,26,43,60,74,84,91,95,97,98];let bpStep=0,bpBusy=false;
+function trainStep(){
+  if(bpBusy||bpStep>=bpProbs.length-1)return;bpBusy=true;
+  pulse('nn2','live',false,()=>{pulse('nn2','back',true,()=>{
+    bpStep++;const p=bpProbs[bpStep];
+    document.getElementById('bp-bar').style.width=(p*0.6)+'%';
+    document.getElementById('bp-pct').textContent='%'+p;
+    document.getElementById('bp-loss').style.width=(100-p)+'%';
+    document.getElementById('bp-loss').style.background=p>80?'#02C39A':p>50?'#d97706':'#dc2626';
+    const msgs=['','Adım 1 — tahmin çok yanlıştı, dart tahtanın çok dışına saplandı. Ağırlıklar sertçe düzeltildi.','Adım 2 — yön doğru: aynı cümleyi tekrar görünce artık daha az şaşırıyor.','Adım 3 — “hava çok...” kalıbı tanıdık gelmeye başladı, işe yarayan bağlantılar güçleniyor.','Adım 4 — hata küçüldükçe düzeltmeler de küçülüyor: artık el ayarı, bilek ayarına döndü.','Adım 5 — ince ayar bölgesi: büyük değişiklik yok, ufak rötuşlar var.','Adım 6 — model artık “güzel”i güçlü bir olasılıkla öne koyuyor.','Adım 7 — neredeyse öğrendi; yanlış bağlantılar zayıfladı, doğrular kalınlaştı.','Adım 8 — model artık emin: dart hep merkeze yakın.','Adım 9 — öğrendi 🎉 Gerçek eğitimde bu döngü, milyonlarca farklı cümleyle trilyonlarca kez döner.'];
+    document.getElementById('bp-msg').textContent=msgs[bpStep];
+    learnVisual(bpStep/(bpProbs.length-1));
+    bpBusy=false;});});}
+function learnVisual(t){
+  document.querySelectorAll('#nn2 .nn-line').forEach(ln=>{
+    const w=+ln.dataset.w;
+    if(w>0.8){ln.style.strokeWidth=(1.1+w*t*2.4);ln.style.stroke=t>0.05?'#065A82':'';ln.style.opacity='0.95';}
+    else if(t>0.05){ln.style.strokeWidth='0.8';ln.style.opacity=Math.max(0.25,0.8-t*0.6);}
+    else{ln.style.strokeWidth='';ln.style.opacity='';}});}
+function resetTrain(){bpStep=0;bpBusy=false;
+  document.getElementById('bp-bar').style.width='9%';
+  document.getElementById('bp-pct').textContent='%12';
+  document.getElementById('bp-loss').style.width='88%';
+  document.getElementById('bp-loss').style.background='#dc2626';
+  document.getElementById('bp-msg').textContent='Adım 0 — model daha hiçbir şey öğrenmedi, tahmin neredeyse rastgele.';
+  document.querySelectorAll('#nn2 .nn-line').forEach(ln=>{ln.style.stroke='';ln.style.strokeWidth='';ln.style.opacity='';});}
+
+/* Attention demosu */
+const attWords=['Kedi','mama','kabını','devirdi','çünkü','o','çok','açtı'];
+const attMap={
+  0:[[3,.5],[7,.4]], 1:[[2,.7]], 2:[[1,.7],[3,.5]], 3:[[0,.8],[2,.6]],
+  4:[[3,.5]], 5:[[0,.9],[7,.5]], 6:[[7,.6]], 7:[[5,.7],[0,.8]]};
+const attNotes={
+  5:'“o” kim? Model en çok “Kedi”ye bakıyor — kabı değil kediyi kastettiğini böyle çözüyor.',
+  3:'“devirdi” — kim, neyi? Attention özneye (Kedi) ve nesneye (kabını) uzanıyor.',
+  7:'“açtı” kime ait? “o” üzerinden “Kedi”ye bağlanıyor.',
+  0:'“Kedi” cümlenin öznesi — fiiller ona bakıyor, o da eylemlerine.'};
+function buildAttention(){
+  const box=document.getElementById('att-words');if(!box||box.children.length)return;
+  attWords.forEach((w,i)=>{
+    const el=document.createElement('span');el.className='att-word';el.textContent=w;
+    el.onclick=()=>showAtt(i);box.appendChild(el);});}
+function showAtt(i){
+  const box=document.getElementById('att-words'),svg=document.getElementById('att-svg'),wrap=document.getElementById('att-wrap');
+  const words=[...box.children];words.forEach(w=>w.classList.remove('src','tgt'));
+  words[i].classList.add('src');
+  const wr=wrap.getBoundingClientRect();
+  const ctr=el=>{const r=el.getBoundingClientRect();return{x:r.left-wr.left+r.width/2,y:r.top-wr.top};};
+  const src=ctr(words[i]);let html='';
+  (attMap[i]||[]).forEach(([j,w])=>{
+    words[j].classList.add('tgt');
+    const t=ctr(words[j]);
+    const mx=(src.x+t.x)/2, my=Math.min(src.y,t.y)-30-Math.abs(src.x-t.x)*0.12;
+    html+='<path class="att-arc on" stroke-width="'+(w*7)+'" d="M'+src.x+' '+src.y+' Q'+mx+' '+my+' '+t.x+' '+t.y+'"/>';});
+  svg.innerHTML=html;
+  document.getElementById('att-note').textContent=attNotes[i]||('“'+attWords[i]+'” en çok bu kelimelere bakıyor — çizgi ne kadar kalınsa ağırlık o kadar büyük.');}
+
+/* S6: prompt builder */
+const parts={
+  rol:{on:false,txt:'Sen deneyimli bir oyun tasarımcısısın.'},
+  gorev:{on:true,txt:'Bu ekran için 3 alternatif öner.'},
+  baglam:{on:false,txt:'Hedef kitle 2–7 yaş; ebeveyn onayı şart.'},
+  format:{on:false,txt:'Tablo halinde, artı ve eksileriyle yaz.'},
+  ornek:{on:false,txt:'İyi bir öneri şöyle görünür: “...”'}
+};
+const labels={rol:'Rol',gorev:'Görev',baglam:'Bağlam',format:'Format',ornek:'Örnek'};
+function tog(btn){const k=btn.dataset.k;if(k==='gorev')return;parts[k].on=!parts[k].on;btn.classList.toggle('on',parts[k].on);
+  btn.textContent=(parts[k].on?'':'+ ')+labels[k];renderPrompt();}
+function renderPrompt(){
+  const pv=document.getElementById('preview');let html='',n=0;
+  for(const k of ['rol','gorev','baglam','format','ornek']){
+    if(parts[k].on){html+='<b style="color:#02C39A">'+labels[k]+':</b> '+parts[k].txt+'<br>';n++;}}
+  if(n===1)html+='<span class="ph"><br>— Sadece görev var. Model gerisini varsayacak...</span>';
+  pv.innerHTML=html;
+  const pct=[8,30,55,78,100][n-1]||8;
+  document.getElementById('meter-fill').style.width=pct+'%';
+  const lbl=document.getElementById('meter-label');
+  const msgs=['Prompt gücü: zayıf — model olasılık uzayının ortasına gider, “ortalama” bir cevap alırsın.',
+    'Biraz daha iyi — ama model hâlâ kitleyi ve amacı tahmin etmek zorunda.',
+    'İyi — model kimin için, neyin önemli olduğunu artık biliyor.',
+    'Çok iyi — çıktının şekli de belli, sürpriz kalmadı.',
+    'Tam isabet — model tam olarak istediğin yöne çekildi.'];
+  lbl.textContent=msgs[n-1]||msgs[0];}
+renderPrompt();
+
+/* S9: context rot demosu */
+function rotDemo(v){
+  v=+v;document.getElementById('rot-fill').textContent='%'+v;
+  const q=document.getElementById('rot-q'),m=document.getElementById('rot-msg');
+  const layers=document.querySelectorAll('#ctxwin .layer');
+  layers.forEach((l,i)=>{if(i<4)l.style.opacity=v>75?'0.35':v>45?'0.65':'1';});
+  if(v<=30){q.textContent='yüksek';q.style.color='var(--mint)';m.textContent='Az ve öz — model her detayı net görüyor.';}
+  else if(v<=60){q.textContent='orta';q.style.color='#d97706';m.textContent='Masa kalabalıklaşıyor; önemli detaylar gürültünün arasında kaybolmaya başlıyor.';}
+  else{q.textContent='düşük';q.style.color='#dc2626';m.textContent='Context rot: eski bilgiler bulanıklaştı, model önemli talimatı gözden kaçırabilir. Yeni sohbet zamanı.';}}
+
+/* S12: harness döngü animasyonu */
+let loopTimer=null;
+function startLoop(){const nodes=document.querySelectorAll('#loop .node');let i=0;stopLoop();
+  loopTimer=setInterval(()=>{nodes.forEach(n=>n.classList.remove('lit'));nodes[i%3].classList.add('lit');i++;},900);}
+function stopLoop(){if(loopTimer){clearInterval(loopTimer);loopTimer=null;}
+  document.querySelectorAll('#loop .node').forEach(n=>n.classList.remove('lit'));}
+
+/* Tek nöron demosu */
+function neuDemo(){
+  const sig=+document.getElementById('neu-sig').value, bias=+document.getElementById('neu-bias').value;
+  document.getElementById('neu-sig-v').textContent=sig;
+  document.getElementById('neu-bias-v').textContent=bias;
+  const sum=sig+bias, act=Math.max(0,sum);
+  const c=document.getElementById('neu-circle'), st=document.getElementById('neu-state');
+  c.textContent=act.toFixed(0);
+  if(act>0){c.style.background='var(--mint)';c.style.color='#06342b';c.style.boxShadow='0 0 24px rgba(2,195,154,.55)';
+    st.textContent='Ateşlendi!';st.style.color='var(--mint)';}
+  else{c.style.background='#cbd5e1';c.style.color='#fff';c.style.boxShadow='none';
+    st.textContent='Sessiz';st.style.color='var(--muted)';}
+  document.getElementById('neu-calc').textContent=sig+' + ('+bias+') = '+sum+(act>0?' → pozitif, sinyal ilerliyor (aktivasyon: '+act+')':' → negatif, ateşlenmedi (aktivasyon: 0)');}
+
+/* "Neden işe yarıyor?" satırları */
+document.querySelectorAll('.row').forEach(r=>{
+  if(r.querySelector('.why'))r.addEventListener('click',()=>r.classList.toggle('open'));});
+
+drawNet('nn1');drawNet('nn2');buildAttention();neuDemo();
+show(0);
+</script>
+</body>
+</html>
